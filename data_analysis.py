@@ -25,7 +25,7 @@ with open(filename, "r") as f:
                                                                                
 number_of_radiuses=len(np.unique(original_data[:,column_of_radii]))
 number_of_kappa=len(np.unique(original_data[:,column_of_kappa])) 
-number_of_nodes=len(original_data[:,0])/(number_of_kappa*number_of_radiuses)
+number_of_nodes=len(original_data[:,0])//(number_of_kappa*number_of_radiuses)
 kappas=np.unique(original_data[:,column_of_kappa])
 
 data=np.zeros((number_of_nodes+0,number_of_kappa+1))                                                  
@@ -118,4 +118,4 @@ plt.xlabel('Decay time (us)', fontsize=12)
 plt.ylabel('Thermal conductivity (W/mK)', fontsize=12) 
 plt.show()
 
-print '\nThermal conductivity =', thermal_conductivity, '(W/mK)'
+print ('\nThermal conductivity =', thermal_conductivity, '(W/mK)')
