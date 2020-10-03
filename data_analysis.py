@@ -121,7 +121,7 @@ def main():
 
     thermal_conductivities = extracting_thermal_conductivity(decay_times, kappas, measured_decay_times)
 
-    np.savetxt("Thermal conductivies.csv", thermal_conductivities, delimiter=",", fmt='%1.2f', header="K(W/mK)")
+    np.savetxt("Thermal conductivies.csv", thermal_conductivities, delimiter=",", fmt='%1.4f', header="K(W/mK)")
     print (f"Thermal conductivity = {thermal_conductivities} (W/mK)")
 
 
