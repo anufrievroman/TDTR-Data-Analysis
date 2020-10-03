@@ -1,121 +1,129 @@
-# This code is written by Roman Anufriev for Nomura lab, IIS, University of Tokyo in 2018.
-# The code analyses decay curves produced by Comsol cimulation, fits them and extracts thermal conductivity using experimentally measured decay time.
-# Contact me by anufriev.roman@protonmail.com if you have any questions.
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
-filename="test_file.txt"   # Input file from Comsol
-measured_decay_time=1.6e-6 # [s]
+PATH_TO_COMSOL_FILE = "test_file.txt"
 
-# DEFINE HERE WHICH COLUMN MEANS WHAT IN YOUR INPUT FILE
-# Remember that in python we count from zero, so the first column is 0, not 1
-column_of_radii=0
-column_of_time=1
-column_of_kappa=2
-column_of_temperature=3
+# MEASURED_DECAY_TIMES = np.array([3.21,   3.09,   3.04])  # [us]
+MEASURED_DECAY_TIMES = np.array([1.6])  # [us]
+# PATH_TO_DECAY_TIMES_FILE = "DT_300K.csv"
 
-fit_type='full_exp' # or 'log' or 'exp'                                         # There are three types of fitting, 'exp','log', or 'full_exp' 
+PUMP_DURATION = 1e-6
 
-shift=0                                                                         # Don't change unless you know what you're doing
+COLUMN_OF_RADII       = 0
+COLUMN_OF_TIME        = 1
+COLUMN_OF_KAPPA       = 2
+COLUMN_OF_TEMPERATURE = 3
 
-# TAKING CARE OF THE INPUT FILE AND ITS DATA
-with open(filename, "r") as f:
-    original_data = np.loadtxt(f, comments='%')
-                                                                               
-number_of_radiuses=len(np.unique(original_data[:,column_of_radii]))
-number_of_kappa=len(np.unique(original_data[:,column_of_kappa])) 
-number_of_nodes=len(original_data[:,0])//(number_of_kappa*number_of_radiuses)
-kappas=np.unique(original_data[:,column_of_kappa])
+FIT_TYPE = 'full_exp'
+SHIFT    = 0
+TALE_CUT = 0
 
-data=np.zeros((number_of_nodes+0,number_of_kappa+1))                                                  
-data[:,0]=original_data[range(number_of_nodes),column_of_time]                  # The first column is time - the same for all kappas and radiuses
 
-for j in range(number_of_kappa):                                                # Let's separete the data for different kappa into different columns
-    data[:,j+1]=original_data[range(j*(number_of_nodes),(j+1)*(number_of_nodes)),column_of_temperature]
+def read_decay_time_file(path):
+    '''Here we read the file and calculate the average and standard deviation'''
+    data = np.genfromtxt(path, delimiter=',', usecols = (0,1,2), skip_header = 1)
+    return data
 
-for j in range(number_of_kappa):                                              
-    data[:,j+1]=data[:,j+1]-min(data[:,j+1])                                    # Let's bring base line to zero 
-    data[:,j+1]=data[:,j+1]/max(data[:,j+1])                                    # Let's normalise, so now it is from zero to one
 
-for i in range(number_of_nodes):                                                # Let's cut off the part before the decay
-    if data[i,1]==1:  cutoff_node_number=i+shift				# Here we found where is 1, so it must be the pick
+def read_file(path):
+    '''Reading file form Comsol, separating into columns etc'''
+    original_data = np.loadtxt(path, comments='%')
+                                                                                   
+    number_of_radiuses = len(np.unique(original_data[:,COLUMN_OF_RADII]))
+    number_of_kappa = len(np.unique(original_data[:,COLUMN_OF_KAPPA])) 
+    number_of_nodes = len(original_data[:,0])//(number_of_kappa*number_of_radiuses)
+    kappas = np.unique(original_data[:,COLUMN_OF_KAPPA])
 
-data_normalized=np.zeros((number_of_nodes-cutoff_node_number,number_of_kappa+1))
-data_normalized[:,0]=data[range(cutoff_node_number,number_of_nodes),0]-data[cutoff_node_number,0]
-
-for j in range(number_of_kappa):                                                # And here we will keep only the decaying part of the curve
-    data_normalized[:,j+1]=data[range(cutoff_node_number,number_of_nodes),j+1]
-
-# TYPES OF FITTING
-def simple_exp_fit(np_array_x, np_array_y):
-    '''This function outputs parameter t of the exponential fit y = exp[-x/t]'''   
-    def func(x, t):
-        return np.exp(-x/t)
-    par, pcov = curve_fit(func, np_array_x, np_array_y) 
-    return par
-
-def simple_exp_fit_via_log(np_array_x, np_array_y):
-    '''This function outputs parameter t of the exponential fit y = exp[-x/t]'''   
-    def func(x, a):
-        return a*x
-    par, pcov = curve_fit(func, np_array_x, np.log(np_array_y) )#, bounds=(0, [3., 100., 400.,1.])) 
-    return 1/abs(par)
-
-def full_exp_fit(np_array_x, np_array_y):
-    '''This function outputs parameter t of the exponential fit y = a*exp[-x/t]+d'''    
-    def func(x, a, t, d):
-        return a * np.exp(-x/t) + d
-    #make the curve_fit IMPORTANT Control the parameters bounds here!
-    par, pcov = curve_fit(func, np_array_x, np_array_y, bounds=(0, [1.1, 100e-5, 1e-5]))
-    return par
-
-# FITTING THE DECAY CURVES 
-if fit_type=='exp':
-    decay_times=[float(simple_exp_fit(data_normalized[:,0],data_normalized[:,j+1])) for j in range(number_of_kappa)] 
-elif fit_type=='log':
-    decay_times=[simple_exp_fit_via_log(data_normalized[:,0],data_normalized[:,j+1]) for j in range(number_of_kappa)] 
-elif fit_type=='full_exp':
-    #decay_times=[full_exp_fit(data_normalized[:,0],data_normalized[:,j+1]) for j in range(number_of_kappa)] 
-    decay_times=[0]*number_of_kappa
-    a_coefficients=[0]*number_of_kappa
-    d_coefficients=[0]*number_of_kappa
+    data = np.zeros((number_of_nodes, number_of_kappa+1))                                                  
+    data[:,0] = original_data[range(number_of_nodes), COLUMN_OF_TIME]
     for j in range(number_of_kappa):
-        fit_parameters = full_exp_fit(data_normalized[:,0],data_normalized[:,j+1])
-        decay_times[j] = fit_parameters[1]
-        a_coefficients[j] = fit_parameters[0]
-        d_coefficients[j] = fit_parameters[2]
+        data[:,j+1] = original_data[range(j*(number_of_nodes),(j+1)*(number_of_nodes)), COLUMN_OF_TEMPERATURE]
+    return data, kappas
 
-# PLOTING THE RESULTS OF FITTING  
-for j in range(0,number_of_kappa):
-    plt.plot(data_normalized[:,0]*1e6,data_normalized[:,j+1], 'o', mfc='none',color='b', linewidth=1.0, markersize=2)
+
+def cut_and_normalize(x, y):
+    '''Cutting the increasing part of the signal an normalizing the rest between 0 and 1'''
+    cut = find_nearest(x, PUMP_DURATION) + SHIFT
+    x_norm = x[range(cut, len(y) - TALE_CUT)] - x[cut]
+    y -= min(y) 
+    y_norm = y[range(cut, len(y) - TALE_CUT)] / y[cut] 
+    return x_norm, y_norm
+
+
+def find_nearest(array, value):
+    '''Finding the nearest value in the array and returning its number'''
+    index = (np.abs(array - value)).argmin()
+    return index
+
+
+def exp_fit(x_norm, y_norm):
+    '''This function outputs fit parameters for various exponential fits '''    
+    if FIT_TYPE == 'full_exp':
+        def full_exp(x, t, d, a):
+            return a * np.exp(-x/t) + d
+        par, _ = curve_fit(full_exp, x_norm, y_norm, bounds=(0, [100e-5, 0.1, 1.1]))
+        t, d, a = par
+
+    if FIT_TYPE == 'exp':
+        def exp(x, t, d):
+            return np.exp(-x/t) + d
+        par, _ = curve_fit(exp, x_norm, y_norm, bounds=(0, [100e-5, 0.1]))
+        t, d = par
+        a = 1.0
+    return t, d, a
+
+
+def plot_decay_curves(x, y, a, d, t):
+    '''This function plots the graph'''
+    # COLORS = ['#1c68ff','#000000','#FB0071','#00FB76']
+    plt.plot(x, y, 'o', mfc='none', color='#1c68ff', linewidth=1.0, markersize=3)
+    plt.plot(x, a*np.exp(-x/t) + d, color='k', linewidth=1.5)  
+    plt.xlabel('Time (s)')
+    plt.ylabel('Normalized signal')
+
+
+def extracting_thermal_conductivity(decay_times, kappas, measured_decay_times):
+    '''Here we extract the thermal_conductivities from the obtained dependence of 
+    decay times on the thermal conductivities in Comsol'''
+    A, B, C = np.polyfit(decay_times, kappas, 2)
+    polynome = lambda t: A*t**2 + B*t + C
+    fit_curve_x = np.linspace(decay_times[0], decay_times[-1], num=30)
+    fit_curve_y = np.array([polynome(t) for t in fit_curve_x])
+    thermal_conductivities = np.array([polynome(t) for t in measured_decay_times])
+
+    for index, kappa in enumerate(kappas):
+        plt.plot(decay_times[index]*1e6, kappa, 'o', mfc='none', color='#1c68ff', linewidth=1.0)
+    plt.plot(fit_curve_x*1e6, fit_curve_y, color='k', linewidth=1.5) 
+    for time, conductivity in zip(measured_decay_times, thermal_conductivities):
+        plt.scatter(time*1e6, conductivity, color='k', s=60) 
+    plt.xlabel('Decay time (us)')
+    plt.ylabel('Thermal conductivity (W/mK)') 
+    plt.show()
+    return thermal_conductivities
+
+
+def main():
+    original_data, kappas = read_file(PATH_TO_COMSOL_FILE)
+    decay_times = []
+    for i in range(original_data.shape[1]-1):
+        x, y = cut_and_normalize(original_data[:,0], original_data[:,i+1])
+        t, d, a = exp_fit(x, y)
+        decay_times.append(t)
+        plot_decay_curves(x, y, a, d, t)
+    plt.show()
     
-if fit_type=='exp' or fit_type=='log':
-    for j in range(0,number_of_kappa):
-        plt.plot(data_normalized[:,0]*1e6,np.exp(-data_normalized[:,0]/decay_times[j]), color='k', linewidth=1.5)  
-elif fit_type=='full_exp':
-    for j in range(0,number_of_kappa):
-        plt.plot(data_normalized[:,0]*1e6,a_coefficients[j]*np.exp(-data_normalized[:,0]/decay_times[j])+d_coefficients[j], color='k', linewidth=1.5)  
-        
-plt.xlabel('Decay time (us)', fontsize=12)
-plt.ylabel('Normalized TDTR signal', fontsize=12)
-plt.savefig("Decay curve fitting.pdf", dpi=300, format = 'pdf', bbox_inches="tight")
-plt.show()
+    if np.size(MEASURED_DECAY_TIMES) > 0:
+        measured_decay_times = MEASURED_DECAY_TIMES
+    else:
+        measured_decay_times = read_decay_time_file(PATH_TO_DECAY_TIMES_FILE)
+    measured_decay_times *= 1e-6 # Convert to seconds
 
-# FITTING THE DEPENDENCE OF DECAY TIMES ON THERMAL CONDUCTIVITY
-coefs = np.polyfit(decay_times, kappas, 2)
-kappa_fit_curve=np.zeros((100,2))
-kappa_fit_curve[:,0]=[decay_times[number_of_kappa-1]+i*(decay_times[0]-decay_times[number_of_kappa-1])/100 for i in range(100)]
-kappa_fit_curve[:,1]=coefs[0]*kappa_fit_curve[:,0]**2+coefs[1]*kappa_fit_curve[:,0]+coefs[2]
+    thermal_conductivities = extracting_thermal_conductivity(decay_times, kappas, measured_decay_times)
 
-thermal_conductivity=coefs[0]*measured_decay_time**2+coefs[1]*measured_decay_time+coefs[2]
+    np.savetxt("Thermal conductivies.csv", thermal_conductivities, delimiter=",", fmt='%1.2f', header="K(W/mK)")
+    print (f"Thermal conductivity = {thermal_conductivities} (W/mK)")
 
-for j in range(0,number_of_kappa):
-    plt.plot(decay_times[j]*1e6,kappas[j], 'o', mfc='none',color='b', linewidth=1.0)
-plt.plot(kappa_fit_curve[:,0]*1e6,kappa_fit_curve[:,1], color='k', linewidth=1.5) 
-plt.scatter(measured_decay_time*1e6,thermal_conductivity, color='k', s=100) 
-plt.xlabel('Decay time (us)', fontsize=12)
-plt.ylabel('Thermal conductivity (W/mK)', fontsize=12) 
-plt.show()
 
-print ('\nThermal conductivity =', thermal_conductivity, '(W/mK)')
+if __name__ == '__main__':
+    main()
