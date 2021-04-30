@@ -2,13 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
-PATH_TO_COMSOL_FILE = "test_file.txt"
+PATH_TO_COMSOL_FILE = "example_comsol_file.txt"
 
-# MEASURED_DECAY_TIMES = np.array([3.21,   3.09,   3.04])  # [us]
-MEASURED_DECAY_TIMES = np.array([1.6])  # [us]
+MEASURED_DECAY_TIMES = np.array([1.5, 1.55, 1.6])  # [us]
 # PATH_TO_DECAY_TIMES_FILE = "DT_300K.csv"
 
-PUMP_DURATION = 1e-6
+PUMP_DURATION = 1e-6 # [s]
 
 COLUMN_OF_RADII       = 0
 COLUMN_OF_TIME        = 1
@@ -21,7 +20,7 @@ TALE_CUT = 0
 
 
 def read_decay_time_file(path):
-    '''Here we read the file and calculate the average and standard deviation'''
+    '''Here we read the file of decay times if it is provided'''
     data = np.genfromtxt(path, delimiter=',', usecols = (0,1,2), skip_header = 1)
     return data
 
@@ -77,9 +76,9 @@ def exp_fit(x_norm, y_norm):
 def plot_decay_curves(x, y, a, d, t):
     '''This function plots the graph'''
     # COLORS = ['#1c68ff','#000000','#FB0071','#00FB76']
-    plt.plot(x, y, 'o', mfc='none', color='#1c68ff', linewidth=1.0, markersize=3)
-    plt.plot(x, a*np.exp(-x/t) + d, color='k', linewidth=1.5)  
-    plt.xlabel('Time (s)')
+    plt.plot(x*1e6, y, 'o', mfc='none', color='#1c68ff', linewidth=1.0, markersize=3)
+    plt.plot(x*1e6, a*np.exp(-x/t) + d, color='k', linewidth=1.5)  
+    plt.xlabel('Time (us)')
     plt.ylabel('Normalized signal')
 
 
@@ -90,8 +89,7 @@ def extracting_thermal_conductivity(decay_times, kappas, measured_decay_times):
     polynome = lambda t: A*t**2 + B*t + C
     fit_curve_x = np.linspace(decay_times[0], decay_times[-1], num=30)
     fit_curve_y = np.array([polynome(t) for t in fit_curve_x])
-    thermal_conductivities = np.array([polynome(t) for t in measured_decay_times])
-
+    thermal_conductivities = np.array([polynome(t) for t in measured_decay_times]) 
     for index, kappa in enumerate(kappas):
         plt.plot(decay_times[index]*1e6, kappa, 'o', mfc='none', color='#1c68ff', linewidth=1.0)
     plt.plot(fit_curve_x*1e6, fit_curve_y, color='k', linewidth=1.5) 
@@ -122,7 +120,7 @@ def main():
     thermal_conductivities = extracting_thermal_conductivity(decay_times, kappas, measured_decay_times)
 
     np.savetxt("Thermal conductivies.csv", thermal_conductivities, delimiter=",", fmt='%1.4f', header="K(W/mK)")
-    print (f"Thermal conductivity = {thermal_conductivities} (W/mK)")
+    print ("Thermal conductivity = ", thermal_conductivities, "(W/mK)")
 
 
 if __name__ == '__main__':
