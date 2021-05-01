@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
 
 # INPUT FILES
-PATH_TDTR = ["example_tdtr_file2.txt"]
+PATH_TDTR = ["example_tdtr_file2.txt",]      # It can be more than one file
 PATH_COMSOL = "example_comsol_file2.txt"
 
 COLORS = ['#000000','#363e5c','#1c68ff','#FB0071','#00FB76','#000000','#1c68ff','#FB0071','#00FB76']
@@ -11,15 +11,10 @@ COLORS = ['#000000','#363e5c','#1c68ff','#FB0071','#00FB76','#000000','#1c68ff',
 RENORMALIZATION_CONSTANT = 1.08
 
 # READING THE EXPERIMENTAL DATA
-def read_file(path):
-    '''Read the experimental decay times'''
-    a, b, c  = np.genfromtxt(path, unpack = True,  delimiter='\t', usecols = (0,1,2), skip_header = 0)
-    return a, b, c
-
 times=[]
 signals=[]
 for i in range(len(PATH_TDTR)):
-    t, b, R = read_file(PATH_TDTR[i])
+    t, b, R = np.genfromtxt(PATH_TDTR[i], unpack = True,  delimiter='\t', usecols = (0,1,2), skip_header = 0)
     R *= RENORMALIZATION_CONSTANT
     times.append(t)
     signals.append(R)
@@ -31,8 +26,7 @@ column_of_time        = 1
 column_of_kappa       = 2
 column_of_temperature = 3
 
-with open(PATH_COMSOL, "r") as f:
-    original_data = np.loadtxt(f, comments='%')
+original_data = np.loadtxt(PATH_COMSOL, comments='%')
                                                                                
 
 # TAKING CARE OF THE COMSOL DATA
@@ -42,14 +36,14 @@ number_of_nodes=len(original_data[:,0])//(number_of_kappa*number_of_radiuses)
 kappas=np.unique(original_data[:,column_of_kappa])
 
 data=np.zeros((number_of_nodes+0,number_of_kappa+1)) 
-data[:,0]=original_data[range(number_of_nodes),column_of_time]                  # The first column is time - the same for all kappas and radiuses
+data[:,0]=original_data[range(number_of_nodes),column_of_time]          # The first column is time - the same for all kappas and radiuses
 
-for j in range(number_of_kappa):                                                # Let's separete the data for different kappa into different columns
+for j in range(number_of_kappa):                                        # Let's separete the data for different kappa into different columns
     data[:,j+1]=original_data[range(j*(number_of_nodes),(j+1)*(number_of_nodes)),column_of_temperature]
 
 for j in range(number_of_kappa):                                              
-    data[:,j+1]=data[:,j+1]-min(data[:,j+1])                                    # Let's bring base line to zero 
-    data[:,j+1]=data[:,j+1]/max(data[:,j+1])                                    # Let's normalize, so now it is from zero to one
+    data[:,j+1]=data[:,j+1]-min(data[:,j+1])                            # Let's bring base line to zero 
+    data[:,j+1]=data[:,j+1]/max(data[:,j+1])                            # Let's normalize, so now it is from zero to one
 
 
 # PLOTING THE DATA TOGETHER
@@ -64,19 +58,19 @@ for i in range(len(PATH_TDTR)):
 for j in range(0,number_of_kappa):
     plt.plot(data[:,0]*1e6,data[:,j+1], '-', mfc='none', color=COLORS[j], linewidth=1.0, markersize=2)
 
-
-# STYLING THE PLOT
+# LABELS
 ax1.set_ylabel('Probe signal', fontsize=14)
-ax1.set_xlabel('Time ($\mu$s)', fontsize=14)
-ax1.tick_params(axis='x', which='both', bottom=True, top=False, labelbottom=True)
-ax1.tick_params(direction='in', which='major', length=6)
-ax1.tick_params(direction='in', which='minor', length=3)
+ax1.set_xlabel('Time (μs)', fontsize=14)
 ax1.legend(['Exp.', kappas[0], kappas[1],kappas[2], kappas[3]], title='$\kappa_{SL}$ (Wm$^{-1}$K$^{-1}$)', framealpha = 0.0, loc = 'upper right')
 
-# PLOT RANGE
+# RANGE
 ax1.set_xlim([-2,45])
 ax1.set_ylim([-0.1,1.1])
 
+# AXIS STYLING
+ax1.tick_params(axis='x', which='both', bottom=True, top=False, labelbottom=True)
+ax1.tick_params(direction='in', which='major', length=6)
+ax1.tick_params(direction='in', which='minor', length=3)
 ax1.minorticks_on()
 ax1.xaxis.set_minor_locator(AutoMinorLocator(2))
 ax1.yaxis.set_minor_locator(AutoMinorLocator(2))

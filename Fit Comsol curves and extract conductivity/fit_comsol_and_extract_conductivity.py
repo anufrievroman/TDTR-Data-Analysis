@@ -7,7 +7,7 @@ PATH_TO_COMSOL_FILE = "example_comsol_file.txt"
 MEASURED_DECAY_TIMES = np.array([1.5, 1.55, 1.6])  # [us]
 # PATH_TO_DECAY_TIMES_FILE = "DT_300K.csv"
 
-PUMP_DURATION = 1e-6 # [s]
+PUMP_DURATION = 1 # [us]
 
 COLUMN_OF_RADII       = 0
 COLUMN_OF_TIME        = 1
@@ -43,7 +43,7 @@ def read_file(path):
 
 def cut_and_normalize(x, y):
     '''Cutting the increasing part of the signal an normalizing the rest between 0 and 1'''
-    cut = find_nearest(x, PUMP_DURATION) + SHIFT
+    cut = find_nearest(x, PUMP_DURATION*1e-6) + SHIFT
     x_norm = x[range(cut, len(y) - TALE_CUT)] - x[cut]
     y -= min(y) 
     y_norm = y[range(cut, len(y) - TALE_CUT)] / y[cut] 
@@ -78,8 +78,8 @@ def plot_decay_curves(x, y, a, d, t):
     # COLORS = ['#1c68ff','#000000','#FB0071','#00FB76']
     plt.plot(x*1e6, y, 'o', mfc='none', color='#1c68ff', linewidth=1.0, markersize=3)
     plt.plot(x*1e6, a*np.exp(-x/t) + d, color='k', linewidth=1.5)  
-    plt.xlabel('Time (us)')
-    plt.ylabel('Normalized signal')
+    plt.ylabel('Normalized probe signal', fontsize=14)
+    plt.xlabel('Time (μs)', fontsize=14)
 
 
 def extracting_thermal_conductivity(decay_times, kappas, measured_decay_times):
@@ -95,8 +95,9 @@ def extracting_thermal_conductivity(decay_times, kappas, measured_decay_times):
     plt.plot(fit_curve_x*1e6, fit_curve_y, color='k', linewidth=1.5) 
     for time, conductivity in zip(measured_decay_times, thermal_conductivities):
         plt.scatter(time*1e6, conductivity, color='k', s=60) 
-    plt.xlabel('Decay time (us)')
-    plt.ylabel('Thermal conductivity (W/mK)') 
+    plt.xlabel('Decay time (μs)', fontsize=14)
+    plt.ylabel('Thermal conductivity (W/mK)', fontsize=14) 
+    plt.savefig('Figure_Thermal_conductivity.pdf')
     plt.show()
     return thermal_conductivities
 
@@ -104,11 +105,15 @@ def extracting_thermal_conductivity(decay_times, kappas, measured_decay_times):
 def main():
     original_data, kappas = read_file(PATH_TO_COMSOL_FILE)
     decay_times = []
+    plt.rcParams['font.family'] = "Arial"
+    plt.rcParams['xtick.major.pad']='6'
+    plt.rcParams['ytick.major.pad']='6'
     for i in range(original_data.shape[1]-1):
         x, y = cut_and_normalize(original_data[:,0], original_data[:,i+1])
         t, d, a = exp_fit(x, y)
         decay_times.append(t)
         plot_decay_curves(x, y, a, d, t)
+    plt.savefig('Figure_Comsol_fits.pdf')
     plt.show()
     
     if np.size(MEASURED_DECAY_TIMES) > 0:
