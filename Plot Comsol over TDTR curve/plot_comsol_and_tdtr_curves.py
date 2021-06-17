@@ -27,7 +27,7 @@ column_of_kappa       = 2
 column_of_temperature = 3
 
 original_data = np.loadtxt(PATH_COMSOL, comments='%')
-                                                                               
+
 
 # TAKING CARE OF THE COMSOL DATA
 number_of_radiuses=len(np.unique(original_data[:,column_of_radii]))
