@@ -14,11 +14,11 @@ COLUMN_OF_SWEEP_PARAMETER = 0
 COLUMN_OF_TIME            = 1
 COLUMN_OF_KAPPA           = 2
 COLUMN_OF_TEMPERATURE     = 3
-
 FIT_TYPE       = 'full_exp'
 SHIFT          = 0
 TALE_CUT       = 0
-SAVEFIGURES    = False
+SAVEFIGURES    = True
+SAVEDATA       = True
 POLYNOMEDEGREE = 4
 
 
@@ -115,6 +115,14 @@ def main():
         ax1.plot(x*1e6, a*np.exp(-x/t) + d, color='k', linewidth=1.5)
         ax1.set_ylabel('Normalized probe signal', fontsize=14)
         ax1.set_xlabel('Time (μs)', fontsize=14)
+
+        # x_array = np.array(x)
+        # y_array = np.array(y)
+
+        if SAVEDATA:
+            output_data = np.vstack((x*1e6, y, a*np.exp(-x/t) + d)).T
+            np.savetxt(f"Fit{i}.csv", output_data, delimiter=",", fmt='%1.5f', header="t(us),Comsol,Fit")
+
     if SAVEFIGURES:
         fig1.savefig('Figure_Comsol_fits.pdf')
     plt.show()
@@ -127,7 +135,10 @@ def main():
 
     thermal_conductivities = extracting_thermal_conductivity(decay_times, kappas, measured_decay_times)
 
-    np.savetxt("Thermal conductivies.csv", thermal_conductivities, delimiter=",", fmt='%1.5f', header="K(W/mK)")
+    if SAVEDATA:
+        output_data = np.vstack((decay_times, kappas)).T
+        np.savetxt(f"Decay_times.csv", output_data, delimiter=",", fmt='%1.9f', header="t(s),K(W/mK)")
+        np.savetxt("Thermal conductivies.csv", thermal_conductivities, delimiter=",", fmt='%1.9f', header="K(W/mK)")
     print ("Thermal conductivity = ", thermal_conductivities, "(W/mK)")
 
 
