@@ -3,10 +3,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
 PATH_TO_COMSOL_FILE = "example_comsol_file.txt"
-
-MEASURED_DECAY_TIMES = np.array([1.5, 1.55, 1.6])  # [us]
-# PATH_TO_DECAY_TIMES_FILE = "DT_300K.csv"
-
+MEASURED_DECAY_TIMES = np.array([1.5, 1.55, 1.6])  # [us] PATH_TO_DECAY_TIMES_FILE = "DT_300K.csv" 
 SWEEP_PARAMETER_NUMBER = 0
 PUMP_DURATION          = 1 # [us]
 
@@ -17,8 +14,8 @@ COLUMN_OF_TEMPERATURE     = 3
 FIT_TYPE       = 'full_exp'
 SHIFT          = 0
 TALE_CUT       = 0
-SAVEFIGURES    = True
-SAVEDATA       = True
+SAVEFIGURES    = False
+SAVEDATA       = False
 POLYNOMEDEGREE = 4
 
 
