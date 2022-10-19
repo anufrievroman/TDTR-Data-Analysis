@@ -3,11 +3,12 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from matplotlib.ticker import AutoMinorLocator
 
-PATH_TDTR = "example_tdtr_file.txt"
+PATH_TDTR = "example_new_tdtr_file.csv"
 FIT_TYPE = "full_exp"
-SHIFT = 0
+SHIFT = 62
 TALE_CUT = 0
-PUMP_DURATION = 20 # [us]
+PUMP_DURATION = 0 # [us]
+TDTR2 = True
 
 
 def cut_and_normalize(x, y):
@@ -79,11 +80,11 @@ def plot(x, y, x_norm, y_norm, a, d, t):
 
 
 def main():
-    x, y  = np.genfromtxt(PATH_TDTR, unpack = True,  delimiter='\t', usecols = (0,2), skip_header = 0)
+    delim = ',' if TDTR2 else '\t'
+    x, y  = np.genfromtxt(PATH_TDTR, unpack = True,  delimiter=delim, usecols = (0,2), skip_header = 0)
     x_norm, y_norm = cut_and_normalize(x, y)
     t, d, a = exp_fit(x_norm, y_norm, FIT_TYPE)
     plot(x, y, x_norm, y_norm, a, d, t)
-
 
 if __name__ == "__main__":
     main()
