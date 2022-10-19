@@ -9,12 +9,14 @@ PATH_COMSOL = "example_comsol_file2.txt"
 COLORS = ['#000000','#363e5c','#1c68ff','#FB0071','#00FB76','#000000','#1c68ff','#FB0071','#00FB76']
 
 RENORMALIZATION_CONSTANT = 1.08
+TDTR2 = False
 
 # READING THE EXPERIMENTAL DATA
 times=[]
 signals=[]
 for i in range(len(PATH_TDTR)):
-    t, b, R = np.genfromtxt(PATH_TDTR[i], unpack = True,  delimiter='\t', usecols = (0,1,2), skip_header = 0)
+    delim = ',' if TDTR2 else '\t'
+    t, R = np.genfromtxt(PATH_TDTR[i], unpack = True,  delimiter=delim, usecols = (0, 2), skip_header = 0)
     R *= RENORMALIZATION_CONSTANT
     times.append(t)
     signals.append(R)
@@ -35,13 +37,13 @@ number_of_kappa=len(np.unique(original_data[:,column_of_kappa]))
 number_of_nodes=len(original_data[:,0])//(number_of_kappa*number_of_radiuses)
 kappas=np.unique(original_data[:,column_of_kappa])
 
-data=np.zeros((number_of_nodes+0,number_of_kappa+1)) 
+data=np.zeros((number_of_nodes+0, number_of_kappa+1))
 data[:,0]=original_data[range(number_of_nodes),column_of_time]          # The first column is time - the same for all kappas and radiuses
 
 for j in range(number_of_kappa):                                        # Let's separete the data for different kappa into different columns
     data[:,j+1]=original_data[range(j*(number_of_nodes),(j+1)*(number_of_nodes)),column_of_temperature]
 
-for j in range(number_of_kappa):                                              
+for j in range(number_of_kappa):
     data[:,j+1]=data[:,j+1]-min(data[:,j+1])                            # Let's bring base line to zero 
     data[:,j+1]=data[:,j+1]/max(data[:,j+1])                            # Let's normalize, so now it is from zero to one
 
